@@ -54,6 +54,9 @@ const numberFormatter = new Intl.NumberFormat("en-AU", {
   maximumFractionDigits: 2,
 });
 
+/**
+ * Converts a user-provided value into a number and falls back when parsing fails.
+ */
 function parseNumber(value, fallback = 0) {
   if (value === "" || value === null || value === undefined) {
     return fallback;
@@ -63,33 +66,54 @@ function parseNumber(value, fallback = 0) {
   return Number.isFinite(parsed) ? parsed : fallback;
 }
 
+/**
+ * Restricts a numeric value to a minimum and maximum range.
+ */
 function clampNumber(value, min = 0, max = Number.POSITIVE_INFINITY) {
   return Math.min(Math.max(value, min), max);
 }
 
+/**
+ * Converts a whole-number percentage like 8 into a decimal like 0.08.
+ */
 function toPercent(value) {
   return parseNumber(value) / 100;
 }
 
+/**
+ * Formats a numeric value as Australian currency.
+ */
 function formatCurrency(value) {
   const safeValue = Number.isFinite(value) ? value : 0;
   return moneyFormatter.format(safeValue);
 }
 
+/**
+ * Formats a plain number using Australian locale rules.
+ */
 function formatNumber(value) {
   const safeValue = Number.isFinite(value) ? value : 0;
   return numberFormatter.format(safeValue);
 }
 
+/**
+ * Formats a numeric percentage value with two decimal places.
+ */
 function formatPercent(value) {
   const safeValue = Number.isFinite(value) ? value : 0;
   return `${safeValue.toFixed(2)}%`;
 }
 
+/**
+ * Builds a friendly label for projection rows and chart axes.
+ */
 function formatYearLabel(year) {
   return year === 0 ? "Now" : `Year ${year}`;
 }
 
+/**
+ * Calculates the standard monthly repayment for an amortizing loan.
+ */
 function getMonthlyPayment(principal, annualRate, totalMonths) {
   const loanPrincipal = Math.max(0, principal);
   const months = Math.max(1, Math.round(totalMonths));
@@ -107,6 +131,9 @@ function getMonthlyPayment(principal, annualRate, totalMonths) {
   return (loanPrincipal * monthlyRate * factor) / (factor - 1);
 }
 
+/**
+ * Simulates one year of loan activity and returns the updated balance and repayment totals.
+ */
 function getLoanSnapshot(startBalance, annualRate, remainingTermMonths, loanType, extraMonthlyRepayment) {
   const safeBalance = Math.max(0, startBalance);
   const safeExtra = Math.max(0, extraMonthlyRepayment);
@@ -163,6 +190,9 @@ function getLoanSnapshot(startBalance, annualRate, remainingTermMonths, loanType
   };
 }
 
+/**
+ * Estimates the household's monthly surplus before adding the investment property.
+ */
 function getBaseHouseholdSurplus(values) {
   return (
     parseNumber(values.monthlyNetIncome) -
@@ -171,6 +201,9 @@ function getBaseHouseholdSurplus(values) {
   );
 }
 
+/**
+ * Normalizes inputs and produces the headline metrics for the current purchase scenario.
+ */
 function calculateDeal(rawValues) {
   const values = {
     ...defaultInputs,
@@ -273,6 +306,9 @@ function calculateDeal(rawValues) {
   };
 }
 
+/**
+ * Builds the year-by-year property, debt, and cash flow projection.
+ */
 function generateProjection(config) {
   const {
     inputs,
@@ -379,6 +415,9 @@ function generateProjection(config) {
   return projection;
 }
 
+/**
+ * Evaluates when saved cash plus usable equity could fund a second purchase.
+ */
 function calculateSecondPropertyReadiness(values, projection, remainingSavingsAfterPurchase) {
   const secondDeposit =
     parseNumber(values.secondPropertyTargetPrice) * toPercent(values.secondPropertyDepositPercent);
@@ -429,6 +468,9 @@ function calculateSecondPropertyReadiness(values, projection, remainingSavingsAf
   };
 }
 
+/**
+ * Recalculates the deal across preset purchase prices for side-by-side comparison.
+ */
 function generateScenarioRows(values) {
   return scenarioPrices.map((price) => {
     const scenarioValues = {
@@ -459,6 +501,9 @@ function generateScenarioRows(values) {
   });
 }
 
+/**
+ * Converts the scenario comparison rows into a CSV string for export.
+ */
 function toCsv(rows) {
   const headers = [
     "Property Price",
@@ -495,6 +540,9 @@ function toCsv(rows) {
     .join("\n");
 }
 
+/**
+ * Triggers a browser download for the provided CSV text.
+ */
 function downloadCsv(csvText, fileName) {
   const blob = new Blob([csvText], { type: "text/csv;charset=utf-8;" });
   const url = URL.createObjectURL(blob);
@@ -507,6 +555,9 @@ function downloadCsv(csvText, fileName) {
   URL.revokeObjectURL(url);
 }
 
+/**
+ * Finds padded min and max chart bounds across one or more series.
+ */
 function getChartBounds(seriesList) {
   const values = seriesList.flatMap((series) => series.values);
   const safeValues = values.filter((value) => Number.isFinite(value));
@@ -527,6 +578,9 @@ function getChartBounds(seriesList) {
   };
 }
 
+/**
+ * Converts a series value into SVG x/y coordinates within the chart area.
+ */
 function scalePoint(index, value, count, bounds, width, height, padding) {
   const x = padding.left + (index / Math.max(1, count - 1)) * (width - padding.left - padding.right);
   const y =
@@ -537,6 +591,9 @@ function scalePoint(index, value, count, bounds, width, height, padding) {
   return { x, y };
 }
 
+/**
+ * Builds an SVG line path string from a list of chart values.
+ */
 function buildLinePath(values, bounds, width, height, padding) {
   return values
     .map((value, index) => {
@@ -546,6 +603,9 @@ function buildLinePath(values, bounds, width, height, padding) {
     .join(" ");
 }
 
+/**
+ * Builds an SVG area path string that fills from the line down to the baseline.
+ */
 function buildAreaPath(values, bounds, width, height, padding) {
   if (!values.length) {
     return "";
@@ -559,6 +619,9 @@ function buildAreaPath(values, bounds, width, height, padding) {
   return `${line} L ${lastPoint.x} ${baselineY} L ${firstPoint.x} ${baselineY} Z`;
 }
 
+/**
+ * Maps a numeric result to the matching visual tone for the UI.
+ */
 function getStatusTone(value) {
   if (value > 0) {
     return "positive";
@@ -569,6 +632,9 @@ function getStatusTone(value) {
   return "neutral";
 }
 
+/**
+ * Renders a reusable content card with an optional action area.
+ */
 function Card({ title, subtitle, children, rightSlot }) {
   return (
     <section className="card">
@@ -584,6 +650,9 @@ function Card({ title, subtitle, children, rightSlot }) {
   );
 }
 
+/**
+ * Displays a labeled metric with optional tone styling and helper text.
+ */
 function Stat({ label, value, tone = "neutral", helper }) {
   return (
     <div className="stat">
@@ -594,6 +663,9 @@ function Stat({ label, value, tone = "neutral", helper }) {
   );
 }
 
+/**
+ * Renders a labeled input control used throughout the assumptions form.
+ */
 function InputField({ label, value, onChange, type = "number", step = "any", suffix, min }) {
   return (
     <label className="field">
@@ -606,6 +678,9 @@ function InputField({ label, value, onChange, type = "number", step = "any", suf
   );
 }
 
+/**
+ * Renders a labeled select control for choosing from fixed options.
+ */
 function SelectField({ label, value, onChange, options }) {
   return (
     <label className="field">
@@ -623,10 +698,16 @@ function SelectField({ label, value, onChange, options }) {
   );
 }
 
+/**
+ * Shows a compact status badge with tone-based styling.
+ */
 function Pill({ children, tone = "neutral" }) {
   return <span className={`pill ${tone}`}>{children}</span>;
 }
 
+/**
+ * Formats a value for summary tables using the requested display type.
+ */
 function ValueText({ value, type = "currency" }) {
   const tone = getStatusTone(value);
   const formatted =
@@ -639,6 +720,9 @@ function ValueText({ value, type = "currency" }) {
   return <span className={tone}>{formatted}</span>;
 }
 
+/**
+ * Renders a lightweight SVG chart with legend, axes, and tooltip support.
+ */
 function SimpleChart({ title, subtitle, labels, series, formatValue = formatCurrency }) {
   const width = 720;
   const height = 280;
@@ -1166,6 +1250,9 @@ const styles = `
   }
 `;
 
+/**
+ * Hosts the calculator UI, local state, and all derived scenario outputs.
+ */
 export default function App() {
   const [inputs, setInputs] = useState(
     Object.fromEntries(
@@ -1183,6 +1270,9 @@ export default function App() {
     ? "second property ready"
     : "not ready yet";
 
+  /**
+   * Creates a change handler for a specific input key in the form state.
+   */
   function handleInputChange(key) {
     return (event) => {
       setInputs((current) => ({
@@ -1192,6 +1282,9 @@ export default function App() {
     };
   }
 
+  /**
+   * Restores the calculator inputs and display mode to their default values.
+   */
   function resetDefaults() {
     setInputs(
       Object.fromEntries(
@@ -1201,11 +1294,17 @@ export default function App() {
     setDisplayMode("yearly");
   }
 
+  /**
+   * Exports the current scenario comparison table as a CSV download.
+   */
   function exportScenarioCsv() {
     const csvText = toCsv(scenarioRows);
     downloadCsv(csvText, "investment-property-scenarios.csv");
   }
 
+  /**
+   * Converts yearly amounts to monthly values when the compact view is selected.
+   */
   const monthlyOrYearly = (yearlyValue) =>
     displayMode === "monthly" ? yearlyValue / 12 : yearlyValue;
 
