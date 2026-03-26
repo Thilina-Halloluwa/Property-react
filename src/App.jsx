@@ -633,32 +633,64 @@ function getStatusTone(value) {
 }
 
 /**
- * Renders a reusable content card with an optional action area.
+ * Renders a reusable content card with an optional action area and inline help.
  */
-function Card({ title, subtitle, children, rightSlot }) {
+function Card({ title, subtitle, children, rightSlot, helpContent }) {
+  const [isHelpOpen, setIsHelpOpen] = useState(false);
+
   return (
     <section className="card">
       <div className="cardHeader">
-        <div>
-          <h2>{title}</h2>
+        <div className="cardHeading">
+          <div className="cardTitleRow">
+            <h2>{title}</h2>
+            {helpContent ? (
+              <button
+                type="button"
+                className="infoButton"
+                aria-label={`Show help for ${title}`}
+                aria-expanded={isHelpOpen}
+                onClick={() => setIsHelpOpen((current) => !current)}
+              >
+                i
+              </button>
+            ) : null}
+          </div>
           {subtitle ? <p>{subtitle}</p> : null}
         </div>
         {rightSlot ? <div className="cardActions">{rightSlot}</div> : null}
       </div>
+      {isHelpOpen && helpContent ? <div className="cardHelp">{helpContent}</div> : null}
       {children}
     </section>
   );
 }
 
 /**
- * Displays a labeled metric with optional tone styling and helper text.
+ * Displays a labeled metric with optional tone styling, helper text, and inline help.
  */
-function Stat({ label, value, tone = "neutral", helper }) {
+function Stat({ label, value, tone = "neutral", helper, helpContent }) {
+  const [isHelpOpen, setIsHelpOpen] = useState(false);
+
   return (
     <div className="stat">
-      <span className="statLabel">{label}</span>
+      <div className="statHeader">
+        <span className="statLabel">{label}</span>
+        {helpContent ? (
+          <button
+            type="button"
+            className="infoButton statInfoButton"
+            aria-label={`Show help for ${label}`}
+            aria-expanded={isHelpOpen}
+            onClick={() => setIsHelpOpen((current) => !current)}
+          >
+            i
+          </button>
+        ) : null}
+      </div>
       <strong className={`statValue ${tone}`}>{value}</strong>
       {helper ? <span className="statHelper">{helper}</span> : null}
+      {isHelpOpen && helpContent ? <div className="statHelp">{helpContent}</div> : null}
     </div>
   );
 }
@@ -961,6 +993,13 @@ const styles = `
     background: rgba(255, 255, 255, 0.75);
   }
 
+  .statHeader {
+    display: flex;
+    align-items: start;
+    justify-content: space-between;
+    gap: 10px;
+  }
+
   .grid { display: grid; gap: 18px; }
   .sectionGrid { grid-template-columns: 1.2fr 1fr; align-items: start; }
 
@@ -995,6 +1034,18 @@ const styles = `
     font-size: 0.94rem;
   }
 
+  .cardHeading {
+    display: grid;
+    gap: 6px;
+  }
+
+  .cardTitleRow {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+
   .cardActions, .buttonRow, .legend {
     display: flex;
     gap: 10px;
@@ -1025,6 +1076,59 @@ const styles = `
 
   .buttonPrimary:hover {
     background: linear-gradient(135deg, #0f514d, #13664f);
+  }
+
+  .infoButton {
+    width: 30px;
+    height: 30px;
+    padding: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 999px;
+    background: rgba(17, 94, 89, 0.12);
+    color: #115e59;
+    border: 1px solid rgba(17, 94, 89, 0.18);
+    font-size: 0.95rem;
+    line-height: 1;
+  }
+
+  .infoButton:hover {
+    background: rgba(17, 94, 89, 0.18);
+  }
+
+  .cardHelp {
+    margin: -4px 0 18px;
+    padding: 14px 16px;
+    border-radius: 18px;
+    background: rgba(17, 94, 89, 0.08);
+    border: 1px solid rgba(17, 94, 89, 0.12);
+    color: var(--text);
+    line-height: 1.6;
+  }
+
+  .cardHelp p {
+    margin: 0;
+  }
+
+  .statInfoButton {
+    width: 24px;
+    height: 24px;
+    font-size: 0.82rem;
+    flex: 0 0 auto;
+  }
+
+  .statHelp {
+    margin-top: 10px;
+    padding-top: 10px;
+    border-top: 1px solid rgba(22, 33, 29, 0.1);
+    color: var(--muted);
+    font-size: 0.88rem;
+    line-height: 1.55;
+  }
+
+  .statHelp p {
+    margin: 0;
   }
 
   .formSection, .field, .tooltipGrid div {
@@ -1329,18 +1433,40 @@ export default function App() {
               value={formatCurrency(result.householdSurplusAfterInvestment)}
               tone={getStatusTone(result.householdSurplusAfterInvestment)}
               helper="Monthly position after rent, living costs, and the property result."
+              helpContent={
+                <p>
+                  This is your estimated monthly money left over after your normal living
+                  costs, rent paid, rent received from a tenant, and the investment
+                  property's monthly result are all included.
+                </p>
+              }
             />
             <Stat
               label="Current Property Result"
               value={formatCurrency(result.monthlyAfterTaxPropertyResult)}
               tone={getStatusTone(result.monthlyAfterTaxPropertyResult)}
               helper={result.monthlyAfterTaxPropertyResult >= 0 ? "Positively geared" : "Negatively geared"}
+              helpContent={
+                <p>
+                  This is the property's estimated monthly net result after rent, holding
+                  costs, loan cash cost, and the calculator's simplified tax adjustment. A
+                  positive number means the property adds cash each month. A negative number
+                  means it costs you money to hold.
+                </p>
+              }
             />
             <Stat
               label="Total Equity at Purchase"
               value={formatCurrency(result.projection[0].equity)}
               tone="positive"
               helper="Deposit-based starting equity before any market growth."
+              helpContent={
+                <p>
+                  This is your starting ownership in the property at purchase. In this
+                  model it is mainly your deposit amount, before any future capital growth
+                  or principal repayments are added.
+                </p>
+              }
             />
             <Stat
               label="Second Property Status"
@@ -1353,6 +1479,14 @@ export default function App() {
               }
               tone={result.secondPropertyReadiness.possibleNow ? "positive" : "neutral"}
               helper={readinessStatus}
+              helpContent={
+                <p>
+                  This estimates whether you could fund a second property's deposit and
+                  purchase costs using cash above your emergency buffer plus usable equity
+                  from the first property. It is a planning indicator, not a borrowing
+                  approval.
+                </p>
+              }
             />
           </div>
         </header>
@@ -1361,6 +1495,13 @@ export default function App() {
           <Card
             title="Inputs"
             subtitle="Edit the assumptions and every section updates instantly."
+            helpContent={
+              <p>
+                This card controls every assumption in the calculator, including your
+                household cash flow, purchase details, rent and holding costs, future
+                growth settings, and the second-property scenario.
+              </p>
+            }
             rightSlot={
               <div className="buttonRow">
                 <button type="button" onClick={resetDefaults}>
@@ -1446,6 +1587,13 @@ export default function App() {
             <Card
               title="Current Deal Summary"
               subtitle="Purchase setup, gearing, and affordability at today's assumptions."
+              helpContent={
+                <p>
+                  This card shows the upfront money required, the loan size, first-year
+                  income and costs, and whether the property improves or hurts your
+                  monthly household surplus.
+                </p>
+              }
               rightSlot={
                 result.monthlyAfterTaxPropertyResult >= 0 ? (
                   <Pill tone="positive">Positively geared</Pill>
@@ -1481,6 +1629,13 @@ export default function App() {
             <Card
               title="Cash Flow Results"
               subtitle="A cleaner view of the income, holding costs, and net household effect."
+              helpContent={
+                <p>
+                  This card breaks the property into rent, non-loan costs, loan cash
+                  cost, and net result. Use the toggle to switch between yearly and
+                  monthly views of the same calculation.
+                </p>
+              }
               rightSlot={
                 <div className="buttonRow">
                   <button type="button" className={displayMode === "yearly" ? "buttonPrimary" : ""} onClick={() => setDisplayMode("yearly")}>Yearly</button>
@@ -1501,6 +1656,13 @@ export default function App() {
             <Card
               title="Second Property Readiness"
               subtitle="This checks whether cash above your emergency buffer plus usable equity can fund the second deposit and costs."
+              helpContent={
+                <p>
+                  This card estimates when you could afford a second purchase by combining
+                  cash above your emergency buffer with usable equity from the first
+                  property. It does not test lender servicing or borrowing capacity.
+                </p>
+              }
               rightSlot={
                 result.secondPropertyReadiness.possibleNow ? (
                   <Pill tone="positive">Second property ready</Pill>
@@ -1535,7 +1697,17 @@ export default function App() {
         </div>
 
         <div className="grid" style={{ marginTop: 18 }}>
-          <Card title="Projection Charts" subtitle="Simple SVG charts showing value growth, debt reduction, cash flow, and refinance readiness over time.">
+          <Card
+            title="Projection Charts"
+            subtitle="Simple SVG charts showing value growth, debt reduction, cash flow, and refinance readiness over time."
+            helpContent={
+              <p>
+                This card visualizes how the investment changes over time: property value,
+                loan balance, equity, after-tax cash flow, and when total buying power may
+                cross the amount needed for a second purchase.
+              </p>
+            }
+          >
             <div className="chartGrid">
               <SimpleChart
                 title="Property value over time"
@@ -1577,6 +1749,13 @@ export default function App() {
           <Card
             title="Scenario Comparison Table"
             subtitle="Purchase-price stress test across common price points, using the same assumptions for rent, costs, and projections."
+            helpContent={
+              <p>
+                This table compares several purchase prices using the same settings so you
+                can see how price changes affect cash needed, cash flow, remaining savings,
+                and the estimated timing for a second property.
+              </p>
+            }
             rightSlot={<div className="buttonRow"><button type="button" className="buttonPrimary" onClick={exportScenarioCsv}>Export CSV</button></div>}
           >
             <div className="tableWrap">
@@ -1619,7 +1798,17 @@ export default function App() {
             </div>
           </Card>
 
-          <Card title="Assumptions Note" subtitle="A few important caveats to keep the model practical and easy to follow.">
+          <Card
+            title="Assumptions Note"
+            subtitle="A few important caveats to keep the model practical and easy to follow."
+            helpContent={
+              <p>
+                This note explains the main limits of the calculator, especially where the
+                model uses simplified assumptions instead of state-specific tax, purchase,
+                or lending rules.
+              </p>
+            }
+          >
             <div className="notes">
               <div>These figures are estimates only and are designed for quick scenario testing.</div>
               <div>Tax treatment is simplified and does not replace professional tax advice.</div>
